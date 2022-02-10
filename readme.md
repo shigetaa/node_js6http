@@ -75,3 +75,85 @@ server start http://localhost:3000/
 ```
 Webブラウザーで`http://localhost:3000/index`にアクセスしてみてが`index.html`の内容が表示されると思います。
 
+## アセットを供給する
+アプリケーションの「アセット」は、クライアントサイドのビューで使われる画像やスタイルシードやJavaScriptです。
+HTMLファイルと同様にアプリケーションで供給するには、それぞれに経路が必要です。
+この処理を始めるには、すべてのアセットを置く為の`public`フォルダを作ります。
+その`public`フォルダの中に`img` `css` `js` のフォルダを作成し、それぞれのアセットを配置します。
+
+先ほど作成した、プログラム`main.js`に変更を加えて行きます。
+エラー処理をする`sendErrorResponse`関数を追記します。
+リクエストされた名前のファイルを探す`customReadFile`関数を追記します。
+```javascript
+const PORT = 3000;
+const HTTP = require("http");
+const FS = require("fs");
+
+// リクエストされた名前のファイルを探す関数
+const customReadFile = (file_path, res) => {
+	if (FS.existsSync(file_path)) {
+		FS.readFile(file_path, (err, data) => {
+			if (err) {
+				console.log(err);
+				sendErrorResponse(res);
+				return;
+			}
+			res.write(data);
+			res.end();
+		});
+	} else {
+		sendErrorResponse(res);
+	}
+}
+
+// エラー処理関数
+const sendErrorResponse = res => {
+	res.writeHead(404, {
+		"Content-Type": "text/html"
+	});
+	res.write("<h1>Not Found</h1>");
+	res.end();
+}
+
+// サーバーを起動
+HTTP.createServer((req, res) => {
+	let url = req.url;
+	// URL にファイル拡張子確認処理
+	if (url.indexOf(".html") !== -1) {
+		res.writeHead(200, {
+			"Content-Type": "text/html"
+		});
+		customReadFile(`./views${url}`, res);
+	} else if (url.indexOf(".js") !== -1) {
+		res.writeHead(200, {
+			"Content-Type": "text/javascript"
+		});
+		customReadFile(`./public/js${url}`, res);
+	} else if (url.indexOf(".css") !== -1) {
+		res.writeHead(200, {
+			"Content-Type": "text/css"
+		});
+		customReadFile(`./public/css${url}`, res);
+	} else if (url.indexOf(".png") !== -1) {
+		res.writeHead(200, {
+			"Content-Type": "img/png"
+		});
+		customReadFile(`./public/img${url}`, res);
+	} else {
+		sendErrorResponse(res);
+	}
+
+}).listen(PORT);
+
+console.log("server start http://localhost:%d/", PORT);
+```
+
+以下のコマンドを実行してみます。
+
+```bash
+node main.js
+```
+```bash
+server start http://localhost:3000/
+```
+Webブラウザーで`http://localhost:3000/index.html`にアクセスしてみてが`index.html`の内容が表示されると思います。
