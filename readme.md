@@ -157,3 +157,91 @@ node main.js
 server start http://localhost:3000/
 ```
 Webブラウザーで`http://localhost:3000/index.html`にアクセスしてみてが`index.html`の内容が表示されると思います。
+
+## 経路を別のファイルに移す
+経路を`router.js`と言う新しいファイルに移し、経路を処理するモジュールとして作成していきます。
+
+```javascript
+const routes = {
+	"GET": {
+		"/info": (req, res) => {
+			res.writeHead(200, { "Content-Type": "text/plain" });
+			res.end("Welcom to the Info Page");
+		}
+	},
+	"POST": {}
+};
+exports.handle = (req, res) => {
+	try {
+		if (routes[req.method][req.url]) {
+			routes[req.method][req.url](req, res);
+		} else {
+			res.writeHead(404, { "Content-Type": "text/html" });
+			res.end("<h1>Not Found</h1>");
+		}
+	} catch (ex) {
+		console.log("error: " + ex);
+	}
+};
+exports.get = (url, action) => {
+	routes["GET"][url] = action;
+}
+exports.post = (url, action) => {
+	routes["POST"][url] = action;
+}
+```
+`routes` オブジェクトは `handle` `get` `post` の関数を作成して、モジュール`exports`オブジェクトを通して、`main.js`のファイルからアクセスする事ができます。
+
+実際に、`main.js`を変更して、`routes`モジュールを読み込みするように変更していきます。
+
+```javascript
+const PORT = 3000;
+const HTTP = require("http");
+const FS = require("fs");
+const ROUTE = require("./router");
+
+// リクエストされた名前のファイルを探す関数
+const customReadFile = (file, res) => {
+	FS.readFile(file, (err, data) => {
+		if (err) {
+			console.log(err);
+		}
+		res.end(data);
+	});
+}
+// 経路を登録する
+ROUTE.get("/", (req, res) => {
+	res.writeHead(200, {
+		"Content-Type": "text/html"
+	});
+	res.end("<h1>INDEX</h1>");
+});
+ROUTE.get("/index.html", (req, res) => {
+	res.writeHead(200, {
+		"Content-Type": "text/html"
+	});
+	customReadFile(`./views/index.html`, res);
+});
+ROUTE.post("/", (req, res) => {
+	res.writeHead(200, {
+		"Content-Type": "text/html"
+	});
+	res.end("<h1>POSTED</h1>");
+});
+
+// サーバーを起動
+HTTP.createServer(ROUTE.handle).listen(PORT);
+
+console.log("server start http://localhost:%d/", PORT);
+```
+以下のコマンドを実行してみます。
+
+```bash
+node main.js
+```
+```bash
+server start http://localhost:3000/
+```
+Webブラウザーで`http://localhost:3000/index.html`にアクセスしてみてが`index.html`の内容が表示されると思います。
+
+最初に作成した`main.js`に比べて経路管理が簡単かつコードの記述量が少なくなりました。
